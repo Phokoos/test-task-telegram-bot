@@ -7,6 +7,16 @@ const getAll = async () => {
 }
 
 const addUser = async (user) => {
+	const oldUser = await findOneByTelegramId(user.telegramId)
+	const newUserStringId = user.telegramId.toString()
+
+	if (oldUser) {
+		if (oldUser.telegramId === newUserStringId) {
+			console.log("You have this user now");
+			return
+		}
+	}
+
 	const newUser = await User.create({
 		name: user.name,
 		telegramId: user.telegramId
@@ -15,7 +25,7 @@ const addUser = async (user) => {
 }
 
 const findOneByTelegramId = async (telegramId) => {
-	const user = await User.find({ telegramId })
+	const user = await User.findOne({ telegramId })
 	return user
 }
 
