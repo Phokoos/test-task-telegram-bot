@@ -4,6 +4,7 @@ const bodyParser = require("body-parser")
 const axios = require("axios")
 const mongoose = require("mongoose")
 const { addUser } = require("./controllers/users")
+const { addTrelloCard } = require("./api/trelloApi")
 
 // Telegram Part
 const { TOKEN, SERVER_URL, DB_HOST } = process.env;
@@ -20,25 +21,44 @@ const init = async () => {
 }
 
 app.post(URI, async (req, res) => {
-	console.log(req.body)
+	// console.log(req.body)
 
 	const chatId = req.body.message.chat.id
 	const text = req.body.message.text
 	const userName = req.body.message.from.first_name
 	const userId = req.body.message.from.id
 
-	const newUser = await addUser({
-		name: userName,
-		telegramId: userId
-	})
-	console.log(newUser);
-
 	if (text === "/start") {
+		const newUser = await addUser({
+			name: userName,
+			telegramId: userId
+		})
+
 		await axios.post(`${TELEGRAM_API}/sendMessage`, {
 			chat_id: chatId,
 			text: `Hello ${userName}`
 		})
 	}
+	// ! Add list "In progress"
+	// if (text === "/newTrelloListInProgress") {
+	// 	const data = await addTrelloCard("InProgress")
+	// 	const { id, name } = data;
+
+	// 	await axios.post(`${TELEGRAM_API}/sendMessage`, {
+	// 		chat_id: chatId,
+	// 		text: `${userName} create list "${name}" with id: ${id}`
+	// 	})
+	// }
+	// ! Add list "Done"
+	// if (text === "/newTrelloListDone") {
+	// 	const data = await addTrelloCard("Done")
+	// 	const { id, name } = data;
+
+	// 	await axios.post(`${TELEGRAM_API}/sendMessage`, {
+	// 		chat_id: chatId,
+	// 		text: `${userName} create list "${name}" with id: ${id}`
+	// 	})
+	// }
 
 	return res.send()
 })

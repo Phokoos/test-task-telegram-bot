@@ -10,6 +10,7 @@ setInterval(async () => {
 	await init();
 }, 1000000);
 
+
 // DataBase Part
 mongoose.connect(DB_HOST).
 	then(async () => {
