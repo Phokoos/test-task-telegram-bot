@@ -1,4 +1,3 @@
-const { json } = require("express");
 const User = require("../models/user")
 
 const getAll = async () => {
@@ -29,4 +28,14 @@ const findOneByTelegramId = async (telegramId) => {
 	return user
 }
 
-module.exports = { getAll, addUser, findOneByTelegramId }
+const findOneByTelegramIdAndUpdateTrelloEmail = async (telegramId, trelloUserName) => {
+	const updaterUser = await User.findOneAndUpdate({ telegramId }, { trelloUserName: trelloUserName }, { new: true })
+	return updaterUser
+}
+
+module.exports = {
+	getAll,
+	addUser,
+	findOneByTelegramId,
+	findOneByTelegramIdAndUpdateTrelloEmail
+}
