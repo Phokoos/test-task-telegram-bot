@@ -16,7 +16,7 @@ const initTrelloWebhook = async () => {
 }
 
 //! For dev mode
-const TRELLO_WEBHOOK_ID = "64e627140bd9b91a3cf90440"
+const TRELLO_WEBHOOK_ID = "64e64bc8c45dc842998502d6"
 const deleteTrelloWebhook = async () => {
 	const res = await axios.delete(`https://api.trello.com/1/webhooks/${TRELLO_WEBHOOK_ID}?key=${TRELLO_API_KEY}&token=${TRELLO_TOKEN}`,
 		{

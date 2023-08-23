@@ -27,7 +27,7 @@ mongoose.connect(DB_HOST).
 			console.log("App running on port: ", process.env.PORT || 5000)
 			await init();
 			try {
-				await initTrelloWebhook();
+				// await initTrelloWebhook();
 			} catch (error) {
 				console.log(error);
 				console.log("Error in start trello webhook: ", error.message);

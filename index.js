@@ -4,9 +4,10 @@ const bodyParser = require("body-parser")
 const axios = require("axios")
 const mongoose = require("mongoose")
 const { addUser, findOneByTelegramIdAndUpdateTrelloEmail, findOneByTelegramIdAndDelete, getAll } = require("./controllers/users")
-const { addTrelloCard, findTrelloBoardMemberById } = require("./api/trelloApi")
+const { addTrelloCard, findTrelloBoardMemberById, findTrelloCardById } = require("./api/trelloApi")
 const sendTelegramMessage = require("./api/telegram/telegramApi")
 const { addTrelloUser, findUserAndPlusOneTask, findUserAndMinisOneTask, findUserByTrelloIdAndDelete, findUserByTrelloUserNameInDB } = require("./controllers/trelloUsers")
+const { getStatsAnswerController } = require("./controllers/telegramReq")
 
 // Telegram Part
 const { TOKEN, SERVER_URL, DB_HOST, TRELLO_BOARD_ID } = process.env;
@@ -20,10 +21,10 @@ app.use(bodyParser.json())
 
 const init = async () => {
 	const res = await axios.get(`${TELEGRAM_API}/setWebhook?url=${WEBHOOK_URL}`)
-	// const resUsers = await axios.get(`${TELEGRAM_API}/setWebhook?url=${WEBHOOK_URL}`)
 	console.log(res.data)
 }
 
+//! Work with telegram APIs
 app.post(URI, async (req, res) => {
 	// console.log(req.body);
 	const messageText = req.body.message.text
@@ -35,24 +36,25 @@ app.post(URI, async (req, res) => {
 	//! Get stats logic
 	try {
 		if (text === '/stats') {
-			const allUsers = await getAll()
+			await getStatsAnswerController()
+			// const allUsers = await getAll()
 
-			await allUsers.forEach(async (user) => {
-				const userDataObj = {
-					name: user.name,
-					tasksCount: 0
-				}
+			// await allUsers.forEach(async (user) => {
+			// 	const userDataObj = {
+			// 		name: user.name,
+			// 		tasksCount: 0
+			// 	}
 
-				if (user.trelloUserName !== "") {
-					const dataFromTrelloDB = await findUserByTrelloUserNameInDB(user.trelloUserName)
-					try {
-						userDataObj.tasksCount = dataFromTrelloDB.userTasks
-					} catch (error) {
-						console.log("Error in get write tasks data : ", error.message);
-					}
-				}
-				await sendTelegramMessage(`Користувач ${userDataObj.name} має в опрацюванні ${userDataObj.tasksCount} завдань.`)
-			})
+			// 	if (user.trelloUserName !== "") {
+			// 		const dataFromTrelloDB = await findUserByTrelloUserNameInDB(user.trelloUserName)
+			// 		try {
+			// 			userDataObj.tasksCount = dataFromTrelloDB.userTasks
+			// 		} catch (error) {
+			// 			console.log("Error in get write tasks data : ", error.message);
+			// 		}
+			// 	}
+			// 	await sendTelegramMessage(`Користувач ${userDataObj.name} має в опрацюванні ${userDataObj.tasksCount} завдань.`)
+			// })
 		}
 	} catch (error) {
 		console.log("Error in get stats: ", error.message);
@@ -136,8 +138,24 @@ app.get(URI_TRELLO, async (req, res) => {
 
 app.post(URI_TRELLO, async (req, res) => {
 	const actionType = req.body.action.display.translationKey
-	// console.log(actionType);
-
+	console.log(actionType);
+	// console.log(req.body.action.data.card);
+	// 64e50b5dfb220b4806b72b04
+	//! Minus user task when delete card
+	if (actionType === 'action_archived_card') {
+		// console.log(req.body.action.data.card.id)
+		const trelloCardId = req.body.action.data.card.id
+		const deletedCard = await findTrelloCardById(trelloCardId)
+		const usersArrayId = deletedCard.idMembers;
+		usersArrayId.forEach(async id =>
+		// console.log(id)
+		{
+			console.log(id)
+			await findUserAndMinisOneTask({ trelloId: id })
+		}
+		)
+		// idMembers
+	}
 	//! Remove user from board
 	if (actionType === 'action_removed_from_board' || actionType === 'action_left_board') {
 		const userId = req.body.action.member.id

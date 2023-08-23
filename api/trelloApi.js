@@ -23,7 +23,13 @@ const findTrelloBoardMemberById = async (memberId) => {
 	return res.data
 }
 
+const findTrelloCardById = async (cardId) => {
+	const res = await axios.get(`https://api.trello.com/1/cards/${cardId}?key=${TRELLO_API_KEY}&token=${TRELLO_TOKEN}`)
+	return res.data
+}
+
 module.exports = {
 	addTrelloCard,
-	findTrelloBoardMemberById
+	findTrelloBoardMemberById,
+	findTrelloCardById
 }
