@@ -60,7 +60,7 @@ app.post(URI, async (req, res) => {
 })
 
 app.get(URI_TRELLO, async (req, res) => {
-	res.status(200).send()
+	await res.send()
 })
 
 app.post(URI_TRELLO, async (req, res) => {
@@ -96,7 +96,7 @@ app.post(URI_TRELLO, async (req, res) => {
 	} catch (error) {
 		console.log("Error Trello API controllers: ", error.message);
 	}
-	res.status(200).send()
+	await res.send()
 })
 
 module.exports = { app, init }
