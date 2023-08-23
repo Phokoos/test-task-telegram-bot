@@ -29,6 +29,7 @@ mongoose.connect(DB_HOST).
 			try {
 				await initTrelloWebhook();
 			} catch (error) {
+				console.log(error);
 				console.log("Error in start trello webhook: ", error.message);
 			}
 			//! Stop Trello Webhook for developer mode
