@@ -59,6 +59,10 @@ app.post(URI, async (req, res) => {
 	return res.send()
 })
 
+app.get(URI_TRELLO, async (req, res) => {
+	res.status(200).send()
+})
+
 app.post(URI_TRELLO, async (req, res) => {
 	const actionType = req.body.action.display.translationKey
 	//! DELETE

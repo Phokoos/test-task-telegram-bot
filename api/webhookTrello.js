@@ -12,6 +12,7 @@ const initTrelloWebhook = async () => {
 			'Accept': 'application/json'
 		}
 	})
+	console.log(res.data);
 	return res
 }
 
