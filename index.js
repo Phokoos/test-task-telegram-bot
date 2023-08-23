@@ -188,7 +188,7 @@ app.post(URI_TRELLO, async (req, res) => {
 		console.log(error.message);
 	}
 
-	// res.status(200).send()
+	res.status(200).send()
 })
 
 module.exports = { app, init }
