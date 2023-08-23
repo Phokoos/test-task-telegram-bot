@@ -3,10 +3,10 @@ const express = require("express")
 const bodyParser = require("body-parser")
 const axios = require("axios")
 const mongoose = require("mongoose")
-const { addUser, findOneByTelegramIdAndUpdateTrelloEmail } = require("./controllers/users")
+const { addUser, findOneByTelegramIdAndUpdateTrelloEmail, findOneByTelegramIdAndDelete, getAll } = require("./controllers/users")
 const { addTrelloCard, findTrelloBoardMemberById } = require("./api/trelloApi")
 const sendTelegramMessage = require("./api/telegram/telegramApi")
-const { addTrelloUser, findUserAndPlusOneTask } = require("./controllers/trelloUsers")
+const { addTrelloUser, findUserAndPlusOneTask, findUserAndMinisOneTask, findUserByTrelloIdAndDelete, findUserByTrelloUserNameInDB } = require("./controllers/trelloUsers")
 
 // Telegram Part
 const { TOKEN, SERVER_URL, DB_HOST, TRELLO_BOARD_ID } = process.env;
@@ -32,15 +32,70 @@ app.post(URI, async (req, res) => {
 	const userName = req.body.message.from.first_name
 	const userId = req.body.message.from.id
 
-	if (messageText.slice(0, 10) === '/addTrello') {
-		const array = messageText.split(" ")
-		const trelloUserName = array[1]
-		const newUser = await findOneByTelegramIdAndUpdateTrelloEmail(userId, trelloUserName)
-		if (newUser.trelloUserName) {
-			// console.log("trello email: ", newUser.trelloEmail)
-			await sendTelegramMessage(`Your account connected to Trello data with ${newUser.trelloUserName} user name!`)
+	//! Get stats logic
+	try {
+		if (text === '/stats') {
+			const allUsers = await getAll()
+
+			await allUsers.forEach(async (user) => {
+				const userDataObj = {
+					name: user.name,
+					tasksCount: 0
+				}
+
+				if (user.trelloUserName !== "") {
+					const dataFromTrelloDB = await findUserByTrelloUserNameInDB(user.trelloUserName)
+					try {
+						userDataObj.tasksCount = dataFromTrelloDB.userTasks
+					} catch (error) {
+						console.log("Error in get write tasks data : ", error.message);
+					}
+				}
+				await sendTelegramMessage(`Користувач ${userDataObj.name} має в опрацюванні ${userDataObj.tasksCount} завдань.`)
+			})
 		}
+	} catch (error) {
+		console.log("Error in get stats: ", error.message);
 	}
+
+	//! Left chat part
+	try {
+		if (req.body.message.left_chat_participant) {
+			const telegramId = req.body.message.left_chat_participant.id;
+			await findOneByTelegramIdAndDelete(telegramId)
+		}
+	} catch (error) {
+		console.log("Error in left member chat: ", error.message);
+	}
+
+	try {
+		if (req.body.message.new_chat_participant) {
+			const newUserName = req.body.message.new_chat_participant.first_name;
+			const newUserId = req.body.message.new_chat_participant.id;
+
+			const newUser = await addUser({
+				name: newUserName,
+				telegramId: newUserId
+			})
+			res.status(200).send()
+			return await sendTelegramMessage(`Added new user ${newUserName} to Database`)
+		}
+	} catch (error) {
+		console.log("Error in new member in chat: ", error.message);
+	}
+	try {
+		if (messageText.slice(0, 10) === '/addTrello') {
+			const array = messageText.split(" ")
+			const trelloUserName = array[1]
+			const newUser = await findOneByTelegramIdAndUpdateTrelloEmail(userId, trelloUserName)
+			if (newUser.trelloUserName) {
+				await sendTelegramMessage(`Your account connected to Trello data with ${newUser.trelloUserName} user name!`)
+			}
+		}
+	} catch (error) {
+		console.log(error.message);
+	}
+
 
 	if (text === "/start") {
 		const newUser = await addUser({
@@ -77,10 +132,25 @@ app.post(URI, async (req, res) => {
 
 app.post(URI_TRELLO, async (req, res) => {
 	const actionType = req.body.action.display.translationKey
-	console.log(actionType);
-	// console.log(req.body);
+	// console.log(actionType);
 
-	//! Part with add tasks
+	//! Remove user from board
+	if (actionType === 'action_removed_from_board' || actionType === 'action_left_board') {
+		const userId = req.body.action.member.id
+		await findUserByTrelloIdAndDelete(userId)
+	}
+
+	//! Part with minus tasks
+	if (actionType === 'action_member_left_card' || actionType === 'action_removed_member_from_card') {
+		const newUserId = req.body.action.member.id
+		const newUser = await findTrelloBoardMemberById(newUserId)
+
+		const { username, fullName: name, id: trelloId } = newUser
+
+		await findUserAndMinisOneTask({ username, name, trelloId })
+	}
+
+	//! Part with plus tasks
 	if (actionType === 'action_member_joined_card' || actionType === 'action_added_member_to_card') {
 		const newUserId = req.body.action.member.id
 		const newUser = await findTrelloBoardMemberById(newUserId)
@@ -101,19 +171,18 @@ app.post(URI_TRELLO, async (req, res) => {
 		// console.log(newUserFromTrelloBase);
 	}
 	//! Finished part with task moving
-	// try {
-	// 	const cardName = req.body.action.data.card.name;
-	// 	const cardMover = req.body.action.memberCreator.fullName
-	// 	const listBefore = req.body.action.data.listBefore.name
-	// 	const listAfter = req.body.action.data.listAfter.name
+	try {
+		const cardName = req.body.action.data.card.name;
+		const cardMover = req.body.action.memberCreator.fullName
+		const listBefore = req.body.action.data.listBefore.name
+		const listAfter = req.body.action.data.listAfter.name
 
-	// 	if (req.body.action.type === "updateCard" && req.body.action.display.translationKey === "action_move_card_from_list_to_list") {
-	// 		await sendTelegramMessage(`Користувач ${cardMover} перемістив карту "${cardName}" із колонки "${listBefore}" до колонки "${listAfter}!"`)
-	// 	}
-	// 	res.status(200).send()
-	// } catch (error) {
-	// 	console.log(error.message);
-	// }
+		if (req.body.action.type === "updateCard" && req.body.action.display.translationKey === "action_move_card_from_list_to_list") {
+			await sendTelegramMessage(`Користувач ${cardMover} перемістив карту "${cardName}" із колонки "${listBefore}" до колонки "${listAfter}!"`)
+		}
+	} catch (error) {
+		console.log(error.message);
+	}
 
 	res.status(200).send()
 })

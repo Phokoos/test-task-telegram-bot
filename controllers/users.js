@@ -18,7 +18,8 @@ const addUser = async (user) => {
 
 	const newUser = await User.create({
 		name: user.name,
-		telegramId: user.telegramId
+		telegramId: user.telegramId,
+		trelloUserName: ""
 	})
 	return newUser
 }
@@ -33,9 +34,16 @@ const findOneByTelegramIdAndUpdateTrelloEmail = async (telegramId, trelloUserNam
 	return updaterUser
 }
 
+const findOneByTelegramIdAndDelete = async (telegramId) => {
+	const deletedUser = await User.findOneAndDelete({ telegramId });
+	console.log(deletedUser);
+	return deletedUser
+}
+
 module.exports = {
 	getAll,
 	addUser,
 	findOneByTelegramId,
-	findOneByTelegramIdAndUpdateTrelloEmail
+	findOneByTelegramIdAndUpdateTrelloEmail,
+	findOneByTelegramIdAndDelete
 }
