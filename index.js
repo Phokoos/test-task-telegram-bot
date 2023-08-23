@@ -7,7 +7,7 @@ const { addUser, findOneByTelegramIdAndUpdateTrelloEmail, findOneByTelegramIdAnd
 const { addTrelloCard, findTrelloBoardMemberById, findTrelloCardById } = require("./api/trelloApi")
 const sendTelegramMessage = require("./api/telegram/telegramApi")
 const { addTrelloUser, findUserAndPlusOneTask, findUserAndMinisOneTask, findUserByTrelloIdAndDelete, findUserByTrelloUserNameInDB } = require("./controllers/trelloUsers")
-const { getStatsAnswerController } = require("./controllers/telegramReq")
+const { getStatsAnswerController, leftChatMemberLogic, addedNewMemberToChatController, connectTrelloUser, replyToStartController, createNewList } = require("./controllers/telegramReq")
 
 // Telegram Part
 const { TOKEN, SERVER_URL, DB_HOST, TRELLO_BOARD_ID } = process.env;
@@ -26,114 +26,41 @@ const init = async () => {
 
 //! Work with telegram APIs
 app.post(URI, async (req, res) => {
-	// console.log(req.body);
 	const messageText = req.body.message.text
-	const chatId = req.body.message.chat.id
 	const text = req.body.message.text
-	const userName = req.body.message.from.first_name
 	const userId = req.body.message.from.id
 
-	//! Get stats logic
 	try {
 		if (text === '/stats') {
 			await getStatsAnswerController()
-			// const allUsers = await getAll()
-
-			// await allUsers.forEach(async (user) => {
-			// 	const userDataObj = {
-			// 		name: user.name,
-			// 		tasksCount: 0
-			// 	}
-
-			// 	if (user.trelloUserName !== "") {
-			// 		const dataFromTrelloDB = await findUserByTrelloUserNameInDB(user.trelloUserName)
-			// 		try {
-			// 			userDataObj.tasksCount = dataFromTrelloDB.userTasks
-			// 		} catch (error) {
-			// 			console.log("Error in get write tasks data : ", error.message);
-			// 		}
-			// 	}
-			// 	await sendTelegramMessage(`Користувач ${userDataObj.name} має в опрацюванні ${userDataObj.tasksCount} завдань.`)
-			// })
 		}
-	} catch (error) {
-		console.log("Error in get stats: ", error.message);
-	}
-
-	//! Left chat part
-	try {
 		if (req.body.message.left_chat_participant) {
-			const telegramId = req.body.message.left_chat_participant.id;
-			await findOneByTelegramIdAndDelete(telegramId)
+			await leftChatMemberLogic(req)
 		}
-	} catch (error) {
-		console.log("Error in left member chat: ", error.message);
-	}
-
-	try {
 		if (req.body.message.new_chat_participant) {
-			const newUserName = req.body.message.new_chat_participant.first_name;
-			const newUserId = req.body.message.new_chat_participant.id;
-
-			const newUser = await addUser({
-				name: newUserName,
-				telegramId: newUserId
-			})
-			res.status(200).send()
-			return await sendTelegramMessage(`Added new user ${newUserName} to Database`)
+			await addedNewMemberToChatController(req)
+		}
+		if (text === "/start") {
+			await replyToStartController(req)
+		}
+		if (text === "/newTrelloListInProgress") {
+			await createNewList("InProgress")
+		}
+		if (text === "/newTrelloListDone") {
+			await createNewList("Done")
 		}
 	} catch (error) {
-		console.log("Error in new member in chat: ", error.message);
+		console.log("Error Telegram API controllers: ", error.message);
 	}
+
 	try {
 		if (messageText.slice(0, 10) === '/addTrello') {
-			const array = messageText.split(" ")
-			const trelloUserName = array[1]
-			const newUser = await findOneByTelegramIdAndUpdateTrelloEmail(userId, trelloUserName)
-			if (newUser.trelloUserName) {
-				await sendTelegramMessage(`Your account connected to Trello data with ${newUser.trelloUserName} user name!`)
-			}
+			await connectTrelloUser(messageText, userId)
 		}
 	} catch (error) {
-		console.log(error.message);
+		console.log("Error in addTrello slice: ", error.message);
 	}
-
-
-	if (text === "/start") {
-		const newUser = await addUser({
-			name: userName,
-			telegramId: userId
-		})
-
-		sendTelegramMessage(`Hello ${userName}`)
-
-	}
-	// ! Add list "In progress"
-	// if (text === "/newTrelloListInProgress") {
-	// 	const data = await addTrelloCard("InProgress")
-	// 	const { id, name } = data;
-
-	// 	await axios.post(`${TELEGRAM_API}/sendMessage`, {
-	// 		chat_id: chatId,
-	// 		text: `${userName} create list "${name}" with id: ${id}`
-	// 	})
-	// }
-	// ! Add list "Done"
-	// if (text === "/newTrelloListDone") {
-	// 	const data = await addTrelloCard("Done")
-	// 	const { id, name } = data;
-
-	// 	await axios.post(`${TELEGRAM_API}/sendMessage`, {
-	// 		chat_id: chatId,
-	// 		text: `${userName} create list "${name}" with id: ${id}`
-	// 	})
-	// }
-
 	return res.send()
-})
-
-app.get(URI_TRELLO, async (req, res) => {
-	res.status(200).send()
 })
 
 app.post(URI_TRELLO, async (req, res) => {

@@ -36,7 +36,6 @@ const findOneByTelegramIdAndUpdateTrelloEmail = async (telegramId, trelloUserNam
 
 const findOneByTelegramIdAndDelete = async (telegramId) => {
 	const deletedUser = await User.findOneAndDelete({ telegramId });
-	console.log(deletedUser);
 	return deletedUser
 }
 
