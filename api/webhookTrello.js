@@ -12,12 +12,12 @@ const initTrelloWebhook = async () => {
 			'Accept': 'application/json'
 		}
 	})
-	console.log(res.data);
+	console.log("Init Trello webhook: ", res.data);
 	return res
 }
 
 //! For dev mode
-const TRELLO_WEBHOOK_ID = "64e657ee4c09c9f40823677b"
+const TRELLO_WEBHOOK_ID = "webhookId"
 const deleteTrelloWebhook = async () => {
 	const res = await axios.delete(`https://api.trello.com/1/webhooks/${TRELLO_WEBHOOK_ID}?key=${TRELLO_API_KEY}&token=${TRELLO_TOKEN}`,
 		{

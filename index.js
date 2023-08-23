@@ -65,8 +65,8 @@ app.get(URI_TRELLO, async (req, res) => {
 
 app.post(URI_TRELLO, async (req, res) => {
 	const actionType = req.body.action.display.translationKey
-	//! DELETE
-	console.log(actionType);
+	//! Trello action type for Debugging
+	console.log("Trello action type: ", actionType);
 
 	try {
 		//! Minus user task when delete card

@@ -11,7 +11,7 @@ const addUser = async (user) => {
 
 	if (oldUser) {
 		if (oldUser.telegramId === newUserStringId) {
-			console.log("You have this user now");
+			console.log("Користувач із таким id вже використовується");
 			return
 		}
 	}
